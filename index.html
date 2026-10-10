@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galactic Protocol: Galaga Tactical Edition</title>
+    <style>
+        body { 
+            background: #09090b; 
+            color: #f4f4f5; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow: hidden;
+            touch-action: none;
+        }
+        .game-wrapper {
+            display: flex;
+            background: #18181b;
+            border: 2px solid #27272a;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.15);
+            overflow: hidden;
+            width: 920px;
+            height: 580px;
+        }
+        .sidebar-left {
+            width: 250px;
+            background: #202024;
+            border-right: 2px solid #27272a;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .main-canvas-panel {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #050507;
+            position: relative;
+        }
+        .sidebar-right {
+            width: 200px;
+            background: #18181b;
+            border-left: 2px solid #27272a;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        h1 { margin: 0 0 2px 0; color: #ef4444; font-size: 1.1rem; }
+        .subtitle { font-size: 0.7rem; color: #a1a1aa; margin-bottom: 8px; }
+        
+        .stats-box {
+            background: #18181b;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #3f3f46;
+        }
+        .main-score { font-size: 1.3rem; font-weight: bold; color: #38bdf8; margin: 2px 0; }
+        .mission-goal { font-size: 0.7rem; color: #f43f5e; font-weight: bold; }
+        
+        .timer-bar-container {
+            background: #27272a;
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .timer-bar {
+            background: #f43f5e;
+            height: 100%;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            background: #18181b;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #3f3f46;
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+        }
+        .player-info span { font-weight: bold; color: #10b981; }
+
+        #gameCanvas {
+            background: #000;
+            border: 2px solid #27272a;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .shop-title { font-size: 0.75rem; font-weight: bold; text-align: left; margin-bottom: 5px; color: #e4e4e7; }
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #18181b;
+            border: 1px solid #27272a;
+            padding: 4px 6px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+        .shop-info { text-align: left; }
+        .shop-name { font-size: 0.65rem; font-weight: bold; color: #f4f4f5; }
+        .shop-desc { font-size: 0.58rem; color: #a1a1aa; }
+        
+        .btn-buy {
+            background: #ef4444; color: white; border: none;
+            padding: 3px 6px; font-size: 0.6rem; font-weight: bold;
+            border-radius: 4px; cursor: pointer;
+        }
+        .btn-buy:hover { background: #dc2626; }
+        .btn-buy:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+
+        .btn-pause {
+            background: #a855f7; color: white; border: none;
+            padding: 6px; font-size: 0.75rem; font-weight: bold;
+            border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px;
+        }
+        .btn-pause:hover { background: #9333ea; }
+
+        .inventory-box {
+            background: #202024; border: 1px solid #3f3f46;
+            border-radius: 8px; padding: 8px; margin-bottom: 10px;
+        }
+        .inventory-title { font-size: 0.75rem; font-weight: bold; color: #a855f7; margin-bottom: 6px; text-transform: uppercase; }
+        .item-slot {
+            background: #18181b; border: 1px dashed #3f3f46;
+            border-radius: 6px; padding: 6px; margin-bottom: 6px;
+            cursor: pointer; text-align: left;
+        }
+        .item-slot.equipped { border: 1px solid #a855f7; background: #2e1065; }
+        .item-name { font-size: 0.7rem; font-weight: bold; color: #f4f4f5; }
+        .item-desc { font-size: 0.58rem; color: #a1a1aa; }
+
+        .medals-box { background: #202024; border: 1px solid #3f3f46; border-radius: 8px; padding: 8px; }
+        .medals-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .medal-icon {
+            width: 28px; height: 28px; background: #27272a; border: 1px solid #3f3f46;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        }
+        .medal-icon.unlocked { background: #eab308; border-color: #fef08a; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
+
+        #modalOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(9, 9, 11, 0.92); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-content {
+            background: #18181b; border: 2px solid #3f3f46;
+            padding: 20px; border-radius: 12px; text-align: center; width: 420px;
+        }
+        .card-container { display: flex; gap: 8px; margin-top: 12px; }
+        .reward-card {
+            flex: 1; background: #202024; border: 1px solid #3f3f46;
+            border-radius: 8px; padding: 10px 6px; cursor: pointer; text-align: left;
+        }
+        .reward-card:hover { border-color: #a855f7; }
+        .reward-title { font-size: 0.75rem; font-weight: bold; color: #a855f7; margin-bottom: 4px; }
+        .reward-desc { font-size: 0.6rem; color: #a1a1aa; }
+        .modal-btn {
+            background: #ef4444; color: #fff; border: none;
+            padding: 8px 16px; font-weight: bold; border-radius: 6px;
+            cursor: pointer; margin-top: 12px; width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-wrapper">
+        <div class="sidebar-left">
+            <div>
+                <h1>Galactic Shooter</h1>
+                <div class="subtitle" id="levelIndicator">Fase 1: Invasión</div>
+
+                <div class="stats-box">
+                    <div style="font-size: 0.6rem; color: #a1a1aa; text-transform: uppercase;">Puntos Acumulados</div>
+                    <div class="main-score"><span id="score">0</span> <span style="font-size: 0.7rem; color: #71717a;">pts</span></div>
+                    <div class="mission-goal" id="missionGoalText">Meta de Fase: 20 pts</div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: #a1a1aa; margin-top: 4px;">
+                        <span>Tiempo (60s):</span>
+                        <span id="timerText" style="font-weight: bold; color: #f43f5e;">60.0s</span>
+                    </div>
+                    <div class="timer-bar-container">
+                        <div class="timer-bar" id="timerBar"></div>
+                    </div>
+                </div>
+
+                <div class="player-info">
+                    <div>Vidas: <span id="playerLives">5</span></div>
+                    <div>Daño: <span id="bulletDamage">1</span></div>
+                    <div>Balas: <span id="bulletsPerShot">1</span></div>
+                </div>
+
+                <button class="btn-pause" onclick="togglePause()">⏸️ Pausar Pantalla (Tecla X)</button>
+
+                <div class="shop-title">Módulo de Mejoras</div>
+                <div id="shopContainer"></div>
+            </div>
+            <div style="font-size: 0.58rem; color: #71717a; text-align: center;">
+                ← → Mover | [Espacio] Disparar
+            </div>
+        </div>
+
+        <div class="main-canvas-panel">
+            <canvas id="gameCanvas" width="440" height="520"></canvas>
+        </div>
+
+        <div class="sidebar-right">
+            <div class="inventory-box">
+                <div class="inventory-title">🎒 Inventario / Equipo</div>
+                <div id="inventoryContainer">
+                    <div style="font-size: 0.6rem; color: #71717a; text-align: center; padding: 10px;">
+                        Derrota Jefes para artefactos.
+                    </div>
+                </div>
+            </div>
+
+            <div class="medals-box">
+                <div class="inventory-title" style="color: #eab308;">🏅 Medallas de Jefes</div>
+                <div class="medals-grid" id="medalsGrid">
+                    <div class="medal-icon">🔒</div>
+                    <div class="medal-icon">🔒</div>
+                    <div class="medal-icon">🔒</div>
+                    <div class="medal-icon">🔒</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalOverlay">
+        <div class="modal-content" id="modalContentBox"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let game = {
+            score: 0,
+            phase: 1,
+            goal: 20,
+            timeLeft: 60.0,
+            maxTime: 60.0,
+            isGameOver: false,
+            pausedForModal: false,
+            isPaused: false,
+            isBossPhase: false,
+
+            lives: 5,
+            bulletDamage: 1,
+            bulletSpeed: 7,
+            bulletsPerShot: 1,
+            fireCooldown: 0,
+            invulnerableTimer: 0,
+            equippedItem: null,
+            bossesDefeated: 0,
+            enemyHpMultiplier: 1.0
+        };
+
+        let player = {
+            x: canvas.width / 2 - 15,
+            y: canvas.height - 40,
+            width: 30,
+            height: 20,
+            speed: 5
+        };
+
+        let allyDrone = { x: 0, y: 0, fireTimer: 0 };
+        let keys = {};
+        let bullets = [];
+        let enemyBullets = [];
+        let enemies = [];
+        let boss = null;
+        let inventory = [];
+
+        window.addEventListener('keydown', e => {
+            if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                if (e.code === 'Space' && keys['Space']) return;
+                keys[e.code] = true;
+                if (e.code === 'Space') e.preventDefault();
+            }
+            if (e.code === 'KeyX') {
+                togglePause();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                keys[e.code] = false;
+            }
+        });
+
+        canvas.addEventListener('touchmove', e => {
+            let rect = canvas.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            player.x = touchX - player.width / 2;
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchstart', e => {
+            if (game.fireCooldown <= 0) {
+                shootBullets();
+                game.fireCooldown = 22;
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        let upgrades = {
+            damage: { name: "Potencia de Cañón", desc: "+1 Daño de bala", cost: 100, level: 0 },
+            speed: { name: "Propulsor Balístico", desc: "+Velocidad proyectil", cost: 100, level: 0 },
+            multi: { name: "Cañón Múltiple", desc: "+1 Bala simultánea", cost: 200, level: 0 },
+            life: { name: "Chasis Reforzado", desc: "+1 Vida extra", cost: 30, level: 0 }
+        };
+
+        function togglePause() {
+            if (game.isGameOver || game.pausedForModal) return;
+            game.isPaused = !game.isPaused;
+        }
+
+        function buyUpgrade(key) {
+            let up = upgrades[key];
+            if (game.score >= up.cost) {
+                game.score -= up.cost;
+                up.level++;
+                if (key === 'life') {
+                    up.cost = Math.floor(up.cost * 1.6);
+                } else {
+                    up.cost += 100;
+                }
+                if (key === 'damage') game.bulletDamage++;
+                if (key === 'speed') game.bulletSpeed += 2;
+                if (key === 'multi') game.bulletsPerShot++;
+                if (key === 'life') game.lives++;
+                updateUI();
+            }
+        }
+
+        function spawnEnemies() {
+            enemies = [];
+            boss = null;
+
+            if (game.phase % 10 === 0) {
+                game.isBossPhase = true;
+                boss = {
+                    x: canvas.width / 2 - 45,
+                    y: 40,
+                    width: 90,
+                    height: 50,
+                    hp: Math.floor((60 + (game.phase * 6)) * game.enemyHpMultiplier),
+                    maxHp: Math.floor((60 + (game.phase * 6)) * game.enemyHpMultiplier),
+                    vx: 2,
+                    shootTimer: 0
+                };
+                for (let i = 0; i < 4; i++) {
+                    enemies.push({
+                        x: 60 + i * 85, y: 120, width: 26, height: 20,
+                        type: 'shooter', hp: Math.floor(3 * game.enemyHpMultiplier), points: 3 + (game.phase - 1), speed: 1.5, shootTimer: 50
+                    });
+                }
+            } else {
+                game.isBossPhase = false;
+
+                let cols = 6;
+                let baseStartY = 60;
+                let extraRows = Math.min(3, Math.floor(game.phase / 2));
+                let startY = baseStartY + (extraRows * 25);
+
+                // Fila delantera única de artilleros (disparan con total seguridad)
+                for (let i = 0; i < cols; i++) {
+                    enemies.push({
+                        x: 45 + i * 58,
+                        y: startY,
+                        width: 26,
+                        height: 20,
+                        type: 'shooter',
+                        hp: Math.floor(3 * game.enemyHpMultiplier),
+                        points: 3 + (game.phase - 1),
+                        speed: 1.0,
+                        shootTimer: Math.random() * 80 + 40,
+                        id: 'shooter_' + i
+                    });
+                }
+
+                // Filas traseras adicionales exclusivamente formadas por kamikazes
+                for (let r = 1; r <= extraRows; r++) {
+                    for (let i = 0; i < cols; i++) {
+                        enemies.push({
+                            x: 45 + i * 58,
+                            y: startY - (r * 32),
+                            width: 24,
+                            height: 18,
+                            type: 'kamikaze',
+                            hp: 1,
+                            points: 1 + (game.phase - 1),
+                            speed: 2.0,
+                            state: 'guarding',
+                            targetShooterId: 'shooter_' + i
+                        });
+                    }
+                }
+
+                let randProbeChance = Math.random();
+                let probeCount = 2;
+                if (randProbeChance < 0.4) probeCount = 1;
+                else if (randProbeChance < 0.75) probeCount = 2;
+                else if (randProbeChance < 0.90) probeCount = 4;
+                else probeCount = cols;
+
+                for (let i = 0; i < probeCount; i++) {
+                    enemies.push({
+                        x: 40 + (i * (360 / Math.max(1, probeCount))),
+                        y: 30,
+                        width: 28,
+                        height: 22,
+                        type: 'probe',
+                        hp: Math.floor(2 * game.enemyHpMultiplier),
+                        points: 2 + (game.phase - 1),
+                        speed: 0.6
+                    });
+                }
+            }
+        }
+
+        function update() {
+            if (game.isGameOver || game.pausedForModal || game.isPaused) return;
+
+            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) player.x += player.speed;
+
+            if (keys['Space'] && game.fireCooldown <= 0) {
+                shootBullets();
+                game.fireCooldown = 22;
+                keys['Space'] = false;
+            }
+            if (game.fireCooldown > 0) game.fireCooldown--;
+            if (game.invulnerableTimer > 0) game.invulnerableTimer--;
+
+            if (game.equippedItem === 'drone') {
+                allyDrone.x = player.x - 20;
+                allyDrone.y = player.y + 5;
+                allyDrone.fireTimer--;
+                if (allyDrone.fireTimer <= 0) {
+                    bullets.push({ x: allyDrone.x + 4, y: allyDrone.y, width: 3, height: 8, speed: 8 });
+                    allyDrone.fireTimer = 35;
+                }
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.y -= b.speed;
+                if (b.y < 0) { bullets.splice(i, 1); continue; }
+
+                if (boss && b.x < boss.x + boss.width && b.x + b.width > boss.x && b.y < boss.y + boss.height && b.y + b.height > boss.y) {
+                    boss.hp -= game.bulletDamage;
+                    if (game.equippedItem === 'scatter') {
+                        bullets.push({ x: b.x - 10, y: b.y, width: 3, height: 6, speed: b.speed });
+                        bullets.push({ x: b.x + 10, y: b.y, width: 3, height: 6, speed: b.speed });
+                    }
+                    if (game.equippedItem !== 'piercing') bullets.splice(i, 1);
+                    if (boss.hp <= 0) { boss = null; game.score += 35; defeatBossSuccess(); }
+                    continue;
+                }
+
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let en = enemies[j];
+                    if (b.x < en.x + en.width && b.x + b.width > en.x && b.y < en.y + en.height && b.y + b.height > en.y) {
+                        en.hp -= game.bulletDamage;
+                        if (game.equippedItem === 'scatter') {
+                            bullets.push({ x: b.x - 8, y: b.y, width: 3, height: 6, speed: b.speed });
+                            bullets.push({ x: b.x + 8, y: b.y, width: 3, height: 6, speed: b.speed });
+                        }
+                        if (game.equippedItem !== 'piercing') bullets.splice(i, 1);
+
+                        if (en.hp <= 0) {
+                            enemies.splice(j, 1);
+                            game.score += en.points;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (enemies.length === 0 && !boss && !game.isBossPhase) {
+                spawnEnemies();
+            }
+
+            if (boss) {
+                boss.x += boss.vx;
+                if (boss.x < 20 || boss.x > canvas.width - boss.width - 20) boss.vx *= -1;
+                boss.shootTimer++;
+                if (boss.shootTimer > 80) {
+                    enemyBullets.push({ x: boss.x + 15, y: boss.y + boss.height, width: 6, height: 10, speed: 3.5 });
+                    enemyBullets.push({ x: boss.x + boss.width - 20, y: boss.y + boss.height, width: 6, height: 10, speed: 3.5 });
+                    boss.shootTimer = 0;
+                }
+            }
+
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.y += eb.speed;
+                if (game.invulnerableTimer <= 0 && eb.x < player.x + player.width && eb.x + eb.width > player.x && eb.y < player.y + player.height && eb.y + eb.height > player.y) {
+                    takeDamage();
+                    enemyBullets.splice(i, 1);
+                    continue;
+                }
+                if (eb.y > canvas.height) enemyBullets.splice(i, 1);
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let en = enemies[i];
+
+                if (en.type === 'shooter') {
+                    en.y += Math.sin(Date.now() / 400) * 0.2;
+                    en.shootTimer--;
+                    if (en.shootTimer <= 0) {
+                        enemyBullets.push({ x: en.x + en.width / 2, y: en.y + en.height, width: 5, height: 8, speed: 3.2 });
+                        en.shootTimer = 110;
+                    }
+                } else if (en.type === 'kamikaze') {
+                    let shooterAlive = enemies.some(e => e.id === en.targetShooterId);
+                    if (!shooterAlive) en.state = 'attacking';
+
+                    if (en.state === 'attacking') {
+                        let angle = Math.atan2((player.y + player.height/2) - en.y, (player.x + player.width/2) - en.x);
+                        en.x += Math.cos(angle) * 1.6;
+                        en.y += Math.sin(angle) * 1.6;
+                    } else {
+                        en.x += Math.sin(Date.now() / 400) * 0.2;
+                    }
+                } else if (en.type === 'probe') {
+                    en.y += en.speed;
+                    if (en.y > canvas.height) en.y = -30;
+
+                    let coneCenterX = en.x + en.width / 2;
+                    let coneCenterY = en.y + en.height;
+                    let distToPlayer = Math.hypot((player.x + player.width/2) - coneCenterX, (player.y + player.height/2) - coneCenterY);
+                    if (game.invulnerableTimer <= 0 && distToPlayer < 28) {
+                        takeDamage();
+                    }
+                }
+
+                if (game.invulnerableTimer <= 0 && en.x < player.x + player.width && en.x + en.width > player.x && en.y < player.y + player.height && en.y + en.height > player.y) {
+                    takeDamage();
+                    enemies.splice(i, 1);
+                    continue;
+                }
+            }
+
+            game.timeLeft -= 1 / 60;
+            if (game.timeLeft <= 0) evaluatePhase();
+
+            updateUI();
+        }
+
+        function shootBullets() {
+            let count = game.bulletsPerShot;
+            for (let i = 0; i < count; i++) {
+                let offsetX = (i - (count - 1) / 2) * 8;
+                bullets.push({
+                    x: player.x + player.width / 2 - 2 + offsetX,
+                    y: player.y,
+                    width: 4, height: 12, speed: game.bulletSpeed
+                });
+            }
+        }
+
+        function takeDamage() {
+            game.lives--;
+            game.invulnerableTimer = 80;
+            if (game.lives <= 0) triggerGameOver("¡Tu nave fue destruida!");
+        }
+
+        function evaluatePhase() {
+            if (game.score >= game.goal) {
+                game.phase++;
+                game.goal = Math.floor(game.goal * 1.5);
+                game.timeLeft = 60.0;
+
+                if (game.phase % 5 === 0) {
+                    showMilestoneShop();
+                } else if (game.phase % 10 === 0) {
+                    showPreBossShopModal();
+                } else {
+                    spawnEnemies();
+                }
+            } else {
+                triggerGameOver("No alcanzaste la cuota de puntos acumulados de la fase.");
+            }
+        }
+
+        function showMilestoneShop() {
+            game.pausedForModal = true;
+            let box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div style="font-size: 1.2rem; color: #a855f7; font-weight: bold; margin-bottom: 5px;">⭐ ¡HITO DE FASE ${game.phase}!</div>
+                <p style="color: #a1a1aa; font-size: 0.75rem; margin-bottom: 12px;">Selecciona una bonificación táctica:</p>
+                <div class="card-container">
+                    <div class="reward-card" onclick="selectMilestone('life')">
+                        <div class="reward-title">🛡️ +1 Vida Extra</div>
+                        <div class="reward-desc">Refuerza el blindaje de tu nave.</div>
+                    </div>
+                    <div class="reward-card" onclick="selectMilestone('time')">
+                        <div class="reward-title">⏱️ +15s de Prórroga</div>
+                        <div class="reward-desc">Aumenta el tiempo base de las fases.</div>
+                    </div>
+                    <div class="reward-card" onclick="selectMilestone('points')">
+                        <div class="reward-title">💎 +50 Puntos</div>
+                        <div class="reward-desc">Inyección inmediata de recursos para la tienda.</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function selectMilestone(type) {
+            if (type === 'life') game.lives++;
+            if (type === 'time') game.maxTime += 15.0;
+            if (type === 'points') game.score += 50;
+
+            document.getElementById('modalOverlay').style.display = 'none';
+            game.pausedForModal = false;
+            game.timeLeft = game.maxTime;
+            spawnEnemies();
+            updateUI();
+        }
+
+        function showPreBossShopModal() {
+            game.pausedForModal = true;
+            let box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div style="font-size: 1.2rem; color: #ef4444; font-weight: bold; margin-bottom: 5px;">⚠️ ¡JEFE EN LA FASE ${game.phase}!</div>
+                <p style="color: #a1a1aa; font-size: 0.75rem; margin-bottom: 12px;">Reparaciones suministradas (+1 Vida).</p>
+                <button class="modal-btn" onclick="startBossFight()">🚀 Enfrentar al Jefe</button>
+            `;
+            game.lives++;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function startBossFight() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            game.pausedForModal = false;
+            spawnEnemies();
+            updateUI();
+        }
+
+        function defeatBossSuccess() {
+            game.pausedForModal = true;
+            game.bossesDefeated++;
+            game.enemyHpMultiplier += 0.5;
+
+            let medals = document.querySelectorAll('.medal-icon');
+            if (medals[game.bossesDefeated - 1]) {
+                medals[game.bossesDefeated - 1].classList.add('unlocked');
+                medals[game.bossesDefeated - 1].innerText = '🏅';
+            }
+
+            let box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div style="font-size: 1.2rem; color: #a855f7; font-weight: bold; margin-bottom: 5px;">🏆 ¡JEFE DERROTADO!</div>
+                <p style="color: #a1a1aa; font-size: 0.75rem; margin-bottom: 10px;">Elige tu artefacto:</p>
+                <div class="card-container">
+                    <div class="reward-card" onclick="claimArtifact('drone')">
+                        <div class="reward-title">🤖 Dron Táctico</div>
+                        <div class="reward-desc">Aliado con disparo automático.</div>
+                    </div>
+                    <div class="reward-card" onclick="claimArtifact('scatter')">
+                        <div class="reward-title">💥 Disparo Disperso</div>
+                        <div class="reward-desc">Balas se dividen al impactar.</div>
+                    </div>
+                    <div class="reward-card" onclick="claimArtifact('piercing')">
+                        <div class="reward-title">⚡ Balas Penetrantes</div>
+                        <div class="reward-desc">Atraviesan enemigos en línea.</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function claimArtifact(itemType) {
+            if (!inventory.includes(itemType)) inventory.push(itemType);
+            equipItem(itemType);
+            document.getElementById('modalOverlay').style.display = 'none';
+            game.pausedForModal = false;
+            spawnEnemies();
+            updateUI();
+        }
+
+        function equipItem(itemType) {
+            game.equippedItem = itemType;
+            renderInventory();
+            updateUI();
+        }
+
+        function renderInventory() {
+            let container = document.getElementById('inventoryContainer');
+            if (inventory.length === 0) {
+                container.innerHTML = `<div style="font-size: 0.6rem; color: #71717a; text-align: center; padding: 10px;">Derrota Jefes para artefactos.</div>`;
+                return;
+            }
+            let html = '';
+            let names = {
+                drone: { name: "🤖 Dron Táctico" },
+                scatter: { name: "💥 Disparo Disperso" },
+                piercing: { name: "⚡ Balas Penetrantes" }
+            };
+            inventory.forEach(itemKey => {
+                let isEquipped = game.equippedItem === itemKey;
+                html += `
+                    <div class="item-slot ${isEquipped ? 'equipped' : ''}" onclick="equipItem('${itemKey}')">
+                        <div class="item-name">${names[itemKey].name} ${isEquipped ? '(EQ)' : ''}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function triggerGameOver(reason) {
+            game.isGameOver = true;
+            let overlay = document.getElementById('modalOverlay');
+            let box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div style="font-size: 1.3rem; color: #ef4444; font-weight: bold; margin-bottom: 8px;">GAME OVER</div>
+                <p style="color: #a1a1aa; font-size: 0.8rem; margin-bottom: 15px;">${reason} (Fase ${game.phase}).</p>
+                <button class="modal-btn" onclick="resetGame()">Reiniciar Misión</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            game.score = 0;
+            game.phase = 1;
+            game.goal = 20;
+            game.timeLeft = 60.0;
+            game.maxTime = 60.0;
+            game.isGameOver = false;
+            game.pausedForModal = false;
+            game.isPaused = false;
+            game.lives = 5;
+            game.bulletDamage = 1;
+            game.bulletSpeed = 7;
+            game.bulletsPerShot = 1;
+            game.equippedItem = null;
+            game.bossesDefeated = 0;
+            game.enemyHpMultiplier = 1.0;
+            inventory = [];
+
+            document.querySelectorAll('.medal-icon').forEach(m => { m.classList.remove('unlocked'); m.innerText = '🔒'; });
+            
+            upgrades.damage.cost = 100; upgrades.damage.level = 0;
+            upgrades.speed.cost = 100; upgrades.speed.level = 0;
+            upgrades.multi.cost = 200; upgrades.multi.level = 0;
+            upgrades.life.cost = 30; upgrades.life.level = 0;
+
+            player.x = canvas.width / 2 - 15;
+            spawnEnemies();
+            renderInventory();
+            updateUI();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(50, 100, 2, 2);
+            ctx.fillRect(200, 80, 1, 1);
+            ctx.fillRect(350, 200, 2, 2);
+            ctx.fillRect(120, 300, 1, 1);
+
+            if (game.invulnerableTimer % 4 < 2) {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(player.x + player.width / 2, player.y);
+                ctx.lineTo(player.x, player.y + player.height);
+                ctx.lineTo(player.x + player.width, player.y + player.height);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(player.x + player.width / 2 - 3, player.y + 6, 6, 8);
+            }
+
+            if (game.equippedItem === 'drone') {
+                ctx.fillStyle = '#a855f7';
+                ctx.fillRect(allyDrone.x, allyDrone.y, 10, 10);
+            }
+
+            ctx.fillStyle = game.equippedItem === 'piercing' ? '#eab308' : '#38bdf8';
+            for (let b of bullets) ctx.fillRect(b.x, b.y, b.width, b.height);
+
+            ctx.fillStyle = '#f43f5e';
+            for (let eb of enemyBullets) ctx.fillRect(eb.x, eb.y, eb.width, eb.height);
+
+            if (boss) {
+                ctx.fillStyle = '#a855f7';
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                ctx.fillStyle = '#27272a';
+                ctx.fillRect(boss.x, boss.y - 10, boss.width, 5);
+                ctx.fillStyle = '#a855f7';
+                ctx.fillRect(boss.x, boss.y - 10, (boss.hp / boss.maxHp) * boss.width, 5);
+            }
+
+            for (let en of enemies) {
+                if (en.type === 'shooter') {
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(en.x, en.y, en.width, en.height);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(en.x + 6, en.y + 4, en.width - 12, 6);
+                } else if (en.type === 'kamikaze') {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(en.x, en.y, en.width, en.height);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(en.x + 4, en.y + 4, 4, 4);
+                    ctx.fillRect(en.x + en.width - 8, en.y + 4, 4, 4);
+                } else if (en.type === 'probe') {
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillRect(en.x, en.y, en.width, en.height);
+                    ctx.fillStyle = '#6ee7b7';
+                    ctx.fillRect(en.x + 8, en.y + 6, 12, 8);
+
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
+                    ctx.beginPath();
+                    let cx = en.x + en.width / 2;
+                    let cy = en.y + en.height;
+                    ctx.moveTo(cx, cy);
+                    ctx.arc(cx, cy, 28, 0.2 * Math.PI, 0.8 * Math.PI);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            if (game.isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#a855f7';
+                ctx.font = 'bold 22px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 15);
+
+                ctx.fillStyle = '#f4f4f5';
+                ctx.font = '12px monospace';
+                ctx.fillText('PRESS [X] TO CONTINUE', canvas.width / 2, canvas.height / 2 + 15);
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        function updateUI() {
+            document.getElementById('score').innerText = game.score;
+            document.getElementById('missionGoalText').innerText = `Meta de Fase: ${game.goal} pts`;
+            document.getElementById('timerText').innerText = game.timeLeft.toFixed(1) + 's';
+            document.getElementById('playerLives').innerText = game.lives;
+            document.getElementById('bulletDamage').innerText = game.bulletDamage;
+            document.getElementById('bulletsPerShot').innerText = game.bulletsPerShot;
+            document.getElementById('levelIndicator').innerText = game.isBossPhase ? `FASE ${game.phase}: JEFE` : `Fase ${game.phase}: Invasión`;
+
+            let percentage = (game.timeLeft / game.maxTime) * 100;
+            let timerBar = document.getElementById('timerBar');
+            timerBar.style.width = percentage + '%';
+            if (game.score >= game.goal) {
+                timerBar.style.background = '#10b981';
+            } else {
+                timerBar.style.background = '#f43f5e';
+            }
+
+            let shopHTML = '';
+            for (let key in upgrades) {
+                let up = upgrades[key];
+                shopHTML += `
+                    <div class="shop-item">
+                        <div class="shop-info">
+                            <div class="shop-name">${up.name} (Nv.${up.level})</div>
+                            <div class="shop-desc">${up.desc}</div>
+                        </div>
+                        <button class="btn-buy" onclick="buyUpgrade('${key}')" ${game.score < up.cost ? 'disabled' : ''}>
+                            ${up.cost}pts
+                        </button>
+                    </div>
+                `;
+            }
+            document.getElementById('shopContainer').innerHTML = shopHTML;
+        }
+
+        spawnEnemies();
+        setInterval(update, 1000 / 60);
+        draw();
+        updateUI();
+    </script>
+</body>
+</html>
